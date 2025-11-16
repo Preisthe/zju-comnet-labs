@@ -16,6 +16,12 @@ class ByteStream {
     // all, but if any of your tests are taking longer than a second,
     // that's a sign that you probably want to keep exploring
     // different approaches.
+    char *_buffer{};    //!< Pointer to the buffer array.
+    size_t _capacity{}; //!< Maximum capacity of the buffer.
+    size_t _write_pos{}; //!< Current write position in the buffer.
+    size_t _bytes_written{}; //!< Total number of bytes written to the stream.
+    size_t _bytes_read{}; //!< Total number of bytes read from the stream.
+    bool _end_input{}; //!< Flag indicating that the input has ended.
 
     bool _error{};  //!< Flag indicating that the stream suffered an error.
 

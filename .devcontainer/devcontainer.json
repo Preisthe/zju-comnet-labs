@@ -1,0 +1,20 @@
+{
+  "name": "cs144",
+  "image": "ubuntu:25.04",
+  "updateRemoteUserUID": false,
+  "build": {},
+  "features": {},
+  "postCreateCommand": "apt update && apt install -y gdb build-essential clang-tidy clang-format gcc-doc pkg-config glibc-doc tcpdump tshark",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools-extension-pack"
+      ]
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind"
+  ]
+}
