@@ -29,14 +29,66 @@ void Router::add_route(const uint32_t route_prefix,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/" << int(prefix_length)
          << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)") << " on interface " << interface_num << "\n";
 
-    DUMMY_CODE(route_prefix, prefix_length, next_hop, interface_num);
-    // Your code here.
+    // Store the route in the router's routing table
+    Route r;
+    r.route_prefix = route_prefix;
+    r.prefix_length = prefix_length;
+    r.next_hop = next_hop;
+    r.interface_num = interface_num;
+    _routes.push_back(std::move(r));
+
 }
 
 //! \param[in] dgram The datagram to be routed
 void Router::route_one_datagram(InternetDatagram &dgram) {
-    DUMMY_CODE(dgram);
-    // Your code here.
+    // If TTL is <= 1 the datagram should be discarded (router decrements TTL
+    // when forwarding, but if TTL would reach zero we must drop it).
+    auto &hdr = dgram.header();
+    if (hdr.ttl <= 1) {
+        return; // drop
+    }
+
+    // Longest-prefix match: find the route with the largest prefix_length
+    // that matches the destination address.
+    const uint32_t dst = hdr.dst;
+    int best_idx = -1;
+    uint8_t best_len = 0;
+    for (size_t i = 0; i < _routes.size(); ++i) {
+        const auto &r = _routes[i];
+        const uint8_t plen = r.prefix_length;
+        // compute mask: if prefix_length == 0, mask is 0 (matches all)
+        uint32_t mask = 0;
+        if (plen == 0) {
+            mask = 0;
+        } else {
+            mask = plen >= 32 ? 0xffffffffu : (0xffffffffu << (32 - plen));
+        }
+
+        if ((r.route_prefix & mask) == (dst & mask)) {
+            if (best_idx == -1 || plen > best_len) {
+                best_idx = int(i);
+                best_len = plen;
+            }
+        }
+    }
+
+    if (best_idx == -1) {
+        // no matching route: drop
+        return;
+    }
+
+    // forward: decrement TTL and send via selected interface
+    hdr.ttl -= 1;
+    // Note: checksum will be recalculated when InternetDatagram::serialize()
+    // is called by the network interface's send_datagram implementation.
+
+    const auto &route = _routes[best_idx];
+    Address next_hop = route.next_hop.has_value() ? *route.next_hop : Address::from_ipv4_numeric(dst);
+
+    // send datagram out on the selected interface
+    if (route.interface_num < _interfaces.size()) {
+        _interfaces[route.interface_num].send_datagram(dgram, next_hop);
+    }
 }
 
 void Router::route() {

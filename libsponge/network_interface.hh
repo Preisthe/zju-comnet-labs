@@ -31,6 +31,24 @@
 //! and learns or replies as necessary.
 class NetworkInterface {
   private:
+  // ARP cache: maps IPv4 numeric address -> (EthernetAddress, time-to-live in ms)
+  struct ARPCacheEntry {
+    EthernetAddress ethernet_address{};
+    size_t ttl_ms = 0;  // remaining lifetime in milliseconds
+  };
+
+  // pending ARP requests for which we don't yet know the Ethernet address
+  // each pending request holds queued datagrams destined for that IP and
+  // a time-to-live (5 seconds) for the outstanding ARP request
+  struct PendingRequest {
+    std::deque<InternetDatagram> queued_datagrams{};
+    size_t retry_ttl_ms = 0;  // remaining time before pending request expires
+  };
+
+  // Use unordered_map for fast lookups by numeric IPv4 address
+  std::unordered_map<uint32_t, ARPCacheEntry> _arp_cache{};
+  std::unordered_map<uint32_t, PendingRequest> _pending_requests{};
+
     //! Ethernet (known as hardware, network-access-layer, or link-layer) address of the interface
     EthernetAddress _ethernet_address;
 
