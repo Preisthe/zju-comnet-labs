@@ -8,6 +8,8 @@
 
 #include <functional>
 #include <queue>
+#include <deque>
+#include <optional>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -23,14 +25,30 @@ class TCPSender {
     //! outbound queue of segments that the TCPSender wants sent
     std::queue<TCPSegment> _segments_out{};
 
-    //! retransmission timer for the connection
-    unsigned int _initial_retransmission_timeout;
-
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+  //! Outstanding segments that have been sent but not yet fully acknowledged
+  struct OutstandingSegment {
+    TCPSegment seg;
+    uint64_t seqno; // absolute seqno of the segment's first sequence-space byte
+    size_t len;     // length in sequence space
+  };
+  std::deque<OutstandingSegment> _outstanding{};
+
+  //! retransmission state
+  uint16_t _initial_retransmission_timeout;
+  uint64_t _time_since_last_tick{0};
+  uint64_t _rto{0};
+  bool _timer_running{false};
+  unsigned int _consec_retransmissions{0};
+
+  //! remote receiver advertised window (bytes)
+  uint16_t _remote_window{1};
+  //! whether we've sent a FIN already
+  bool _fin_sent{false};
 
   public:
     //! Initialize a TCPSender

@@ -16,6 +16,9 @@ class TCPConnection {
     //! outbound queue of segments that the TCPConnection wants sent
     std::queue<TCPSegment> _segments_out{};
 
+  //! Number of milliseconds since the last segment was received
+  size_t _time_since_last_segment_received{0};
+
     //! Should the TCPConnection stay active (and keep ACKing)
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
     //! in case the remote TCPConnection doesn't know we've received its whole stream?

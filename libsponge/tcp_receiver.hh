@@ -19,6 +19,8 @@ class TCPReceiver {
 
     //! The maximum number of bytes we'll store.
     size_t _capacity;
+  //! The initial sequence number from the remote (if we've seen a SYN)
+  std::optional<WrappingInt32> _isn{};
 
   public:
     //! \brief Construct a TCP receiver
